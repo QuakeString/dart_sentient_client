@@ -42,6 +42,7 @@ export 'push_notification_models.dart';
 export 'query/query_models.dart';
 export 'queue_models.dart';
 export 'relation_models.dart';
+export 'generated_report_models.dart';
 export 'report_models.dart';
 export 'resource_models.dart';
 export 'role_models.dart';
