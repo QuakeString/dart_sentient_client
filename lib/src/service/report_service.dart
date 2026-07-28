@@ -88,6 +88,44 @@ class ReportService {
     return _tbClient.compute(parseGeneratedReportPageData, response.data!);
   }
 
+  /// Page through generated reports with the full filter set.
+  ///
+  /// Prefer this over [getReports] when filtering: only this endpoint supports
+  /// a time range. It also returns ids as EntityId objects rather than bare
+  /// strings, which [GeneratedReport.fromJson] handles transparently.
+  ///
+  /// [startTime] and [endTime] are ms since epoch, matched against the
+  /// report's creation time.
+  Future<PageData<GeneratedReport>> getReportInfos(PageLink pageLink,
+      {String? reportTemplateId,
+      String? userId,
+      int? startTime,
+      int? endTime,
+      bool? includeCustomers,
+      RequestConfig? requestConfig}) async {
+    var queryParams = pageLink.toQueryParameters();
+    if (reportTemplateId != null) {
+      queryParams['reportTemplateId'] = reportTemplateId;
+    }
+    if (userId != null) {
+      queryParams['userId'] = userId;
+    }
+    if (startTime != null) {
+      queryParams['startTime'] = startTime;
+    }
+    if (endTime != null) {
+      queryParams['endTime'] = endTime;
+    }
+    if (includeCustomers != null) {
+      queryParams['includeCustomers'] = includeCustomers;
+    }
+    var response = await _tbClient.get<Map<String, dynamic>>(
+        '/api/v2/reportInfos/all',
+        queryParameters: queryParams,
+        options: defaultHttpOptionsFromConfig(requestConfig));
+    return _tbClient.compute(parseGeneratedReportPageData, response.data!);
+  }
+
   /// Fetch a single report, or null if it no longer exists.
   Future<GeneratedReport?> getReport(String reportId,
       {RequestConfig? requestConfig}) async {

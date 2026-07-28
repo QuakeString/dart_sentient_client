@@ -43,6 +43,19 @@ extension ReportStatusInfoExt on ReportStatus {
   bool get isDownloadable => this == ReportStatus.completed;
 }
 
+/// Pull a UUID out of a field that may be either a bare string or an EntityId
+/// object.
+///
+/// The two list endpoints disagree: /api/reports returns `"id": "<uuid>"`
+/// while /api/v2/reportInfos/all returns
+/// `"id": {"entityType": "REPORT", "id": "<uuid>"}`. Reading one shape as the
+/// other yields a silent null rather than an error, so both are handled here.
+String? _idOf(dynamic value) {
+  if (value is String) return value;
+  if (value is Map) return value['id'] as String?;
+  return null;
+}
+
 /// The template a report was generated from, as embedded in a report row.
 class ReportTemplateRef {
   const ReportTemplateRef({this.id, required this.name});
@@ -51,10 +64,8 @@ class ReportTemplateRef {
   final String name;
 
   factory ReportTemplateRef.fromJson(Map<String, dynamic> json) {
-    // `id` arrives as an EntityId object ({id, entityType}), not a bare string.
-    final rawId = json['id'];
     return ReportTemplateRef(
-      id: rawId is Map ? rawId['id'] as String? : rawId as String?,
+      id: _idOf(json['id']),
       name: json['name'] as String? ?? '',
     );
   }
@@ -108,12 +119,12 @@ class GeneratedReport {
   factory GeneratedReport.fromJson(Map<String, dynamic> json) {
     final template = json['templateInfo'];
     return GeneratedReport(
-      id: json['id'] as String?,
+      id: _idOf(json['id']),
       createdTime: json['createdTime'] as int?,
-      tenantId: json['tenantId'] as String?,
-      reportTemplateId: json['reportTemplateId'] as String?,
-      schedulerEventId: json['schedulerEventId'] as String?,
-      userId: json['userId'] as String?,
+      tenantId: _idOf(json['tenantId']),
+      reportTemplateId: _idOf(json['reportTemplateId']),
+      schedulerEventId: _idOf(json['schedulerEventId']),
+      userId: _idOf(json['userId']),
       userName: json['userName'] as String?,
       name: json['name'] as String?,
       format: json['format'] as String?,
