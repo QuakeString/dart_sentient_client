@@ -51,12 +51,26 @@ enum ActionType {
   ADDED_COMMENT,
   UPDATED_COMMENT,
   DELETED_COMMENT,
-  SMS_SENT
+  SMS_SENT,
+  // SENTIENT emits this for a permission-denied action (see the server's
+  // ActionType::Denied). Upstream ThingsBoard has no such value, so an
+  // audit log containing one used to blow up the whole page.
+  DENIED,
+  // Anything this enum does not recognise. Never sent by a server — it is
+  // what an unparseable value degrades to.
+  UNKNOWN
 }
 
 ActionType actionTypeFromString(String value) {
+  // orElse is deliberate. firstWhere without it THROWS on any value this enum
+  // does not know, and because the whole page is parsed in one pass a single
+  // unrecognised action type fails every row — the screen shows nothing but
+  // "Something went wrong". A server that adds an action type must never be
+  // able to break an older client that hard.
   return ActionType.values.firstWhere(
-      (e) => e.toString().split('.')[1].toUpperCase() == value.toUpperCase());
+    (e) => e.toString().split('.')[1].toUpperCase() == value.toUpperCase(),
+    orElse: () => ActionType.UNKNOWN,
+  );
 }
 
 extension ActionTypeToString on ActionType {
