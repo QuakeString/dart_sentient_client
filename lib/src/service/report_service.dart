@@ -157,12 +157,20 @@ class ReportService {
   /// Returns raw bytes rather than a stream because the endpoint requires the
   /// JWT: the URL cannot simply be handed to a browser or download manager.
   /// Only valid once the report reaches [ReportStatus.completed].
+  /// [entry] picks ONE document out of a multi-format (zip) report — 'pdf',
+  /// 'xlsx', 'csv', 'ods' — served with its own content type. Omit it to get
+  /// the report exactly as stored, which for a multi-format report is the zip.
   Future<Uint8List> downloadReport(String reportId,
-      {ProgressCallback? onReceiveProgress, RequestConfig? requestConfig}) async {
+      {String? entry,
+      ProgressCallback? onReceiveProgress,
+      RequestConfig? requestConfig}) async {
     var options = defaultHttpOptionsFromConfig(requestConfig);
     options.responseType = ResponseType.bytes;
     var response = await _tbClient.get<List<int>>(
         '/api/report/$reportId/download',
+        queryParameters: entry != null && entry.isNotEmpty
+            ? {'entry': entry.toLowerCase()}
+            : null,
         options: options,
         onReceiveProgress: onReceiveProgress);
     return Uint8List.fromList(response.data!);

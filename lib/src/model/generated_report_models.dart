@@ -92,6 +92,7 @@ class GeneratedReport {
     this.errorMessage,
     this.contentType,
     this.templateInfo,
+    this.additionalInfo,
   });
 
   final String? id;
@@ -116,9 +117,32 @@ class GeneratedReport {
   final String? contentType;
   final ReportTemplateRef? templateInfo;
 
+  /// Extra server-side detail. For a multi-format report this carries
+  /// {"formats": ["PDF","XLSX",...]} — the documents packed inside the zip.
+  final Map<String, dynamic>? additionalInfo;
+
+  /// The formats packed inside a multi-format (zip) report, in server order.
+  /// Empty for an ordinary single-format report, which is the signal a caller
+  /// needs to skip asking the user to choose between one thing.
+  List<String> get availableFormats {
+    final formats = additionalInfo?['formats'];
+    if (formats is! List) {
+      return const [];
+    }
+
+    return formats.map((f) => f.toString().toUpperCase()).toList();
+  }
+
+  /// True when this report packs several documents and a caller must say which
+  /// one it wants (see ReportService.downloadReport's `entry`).
+  bool get isMultiFormat => availableFormats.length > 1;
+
   factory GeneratedReport.fromJson(Map<String, dynamic> json) {
     final template = json['templateInfo'];
     return GeneratedReport(
+      additionalInfo: json['additionalInfo'] is Map
+          ? Map<String, dynamic>.from(json['additionalInfo'] as Map)
+          : null,
       id: _idOf(json['id']),
       createdTime: json['createdTime'] as int?,
       tenantId: _idOf(json['tenantId']),
