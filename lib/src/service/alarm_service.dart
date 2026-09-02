@@ -65,14 +65,29 @@ class AlarmService {
       {RequestConfig? requestConfig}) async {
     var response = await _tbClient.post('/api/alarm/$alarmId/ack',
         options: defaultHttpOptionsFromConfig(requestConfig));
-    return AlarmInfo.fromJson(response.data!);
+    return AlarmInfo.fromJson(_decodeBody(response.data));
   }
 
   Future<AlarmInfo> clearAlarm(String alarmId,
       {RequestConfig? requestConfig}) async {
     var response = await _tbClient.post('/api/alarm/$alarmId/clear',
         options: defaultHttpOptionsFromConfig(requestConfig));
-    return AlarmInfo.fromJson(response.data!);
+    return AlarmInfo.fromJson(_decodeBody(response.data));
+  }
+
+  /// Acknowledge/clear arrive as an undecoded String body in the field
+  /// (observed against a SENTIENT server: "type 'String' is not a subtype of
+  /// type 'Map<String, dynamic>'" thrown straight out of Alarm.fromJson).
+  /// Because the throw happened AFTER the server had already applied the
+  /// change, the alarm really was acknowledged while the app believed the
+  /// call had failed — so nothing downstream was refreshed and the list kept
+  /// showing the old state. Decode defensively rather than explode.
+  Map<String, dynamic> _decodeBody(dynamic data) {
+    if (data is String) {
+      return jsonDecode(data) as Map<String, dynamic>;
+    }
+
+    return data as Map<String, dynamic>;
   }
 
   Future<void> deleteAlarm(String alarmId,
