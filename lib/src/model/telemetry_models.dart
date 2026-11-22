@@ -976,13 +976,15 @@ class TsValue {
 
   TsValue({required this.ts, this.value});
 
+  // SENTIENT servers send typed values (12.5, false) where ThingsBoard sent
+  // strings ("12.5", "false"); keep them as text either way.
   TsValue.fromJson(Map<String, dynamic> json)
       : ts = json['ts'],
-        value = json['value'];
+        value = json['value']?.toString();
 
   TsValue.fromJsonList(List<dynamic> json)
       : ts = json[0],
-        value = json[1];
+        value = json[1]?.toString();
 
   @override
   String toString() {
@@ -1040,13 +1042,20 @@ abstract class WebsocketDataMsg {
 class SubscriptionDataHolder extends WebsocketDataMsg {
   final Map<String, List<TsValue>> data;
 
+  // Only lists of [ts, value] pairs are data. The same message shape also
+  // carries the auth reply ({"authSuccess": true, ...}) and the subscription
+  // acknowledgement ({"cmdId": 1, "subscriptionId": 1}); those are skipped
+  // instead of failing the whole message.
   SubscriptionDataHolder.fromJson(Map<String, dynamic> json)
-      : data = (json['data'] as Map<String, dynamic>).map((key, value) {
-          var tsList = value as List<dynamic>;
-          var tsValuesList =
-              tsList.map((e) => TsValue.fromJsonList(e)).toList();
-          return MapEntry(key, tsValuesList);
-        });
+      : data = {
+          for (final MapEntry(:key, :value)
+              in ((json['data'] as Map?) ?? const {}).entries)
+            if (value is List)
+              key as String: [
+                for (final e in value)
+                  if (e is List && e.length >= 2) TsValue.fromJsonList(e)
+              ],
+        };
 
   @override
   String toString() {
