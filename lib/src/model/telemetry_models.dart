@@ -980,11 +980,20 @@ class TsValue {
   // strings ("12.5", "false"); keep them as text either way.
   TsValue.fromJson(Map<String, dynamic> json)
       : ts = json['ts'],
-        value = json['value']?.toString();
+        value = _text(json['value']);
 
   TsValue.fromJsonList(List<dynamic> json)
       : ts = json[0],
-        value = json[1]?.toString();
+        value = _text(json[1]);
+
+  /// A whole double reads as the REST API shows it ("12", not "12.0"), so
+  /// a value doesn't change format when its first live update arrives.
+  static String? _text(dynamic v) {
+    if (v is double && v.isFinite && v == v.truncateToDouble() && v.abs() < 1e15) {
+      return v.toInt().toString();
+    }
+    return v?.toString();
+  }
 
   @override
   String toString() {

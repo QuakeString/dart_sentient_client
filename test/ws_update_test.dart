@@ -17,7 +17,7 @@ void main() {
           ],
         }
       });
-      expect(u.data['ACTUAL-WEIGHT-VF2']!.single.value, '0.0');
+      expect(u.data['ACTUAL-WEIGHT-VF2']!.single.value, '0'); // sent as 0.0; shown like REST
       expect(u.data['ACTUAL-WEIGHT-VF2']!.single.ts, 1795366320555);
       expect(u.data['0m_strap_malfunction']!.single.value, 'false');
     });
@@ -49,5 +49,14 @@ void main() {
       });
       expect(ack.data, isEmpty);
     });
+  });
+
+  test('whole doubles read like the REST API, others unchanged', () {
+    expect(TsValue.fromJsonList([1, 12.0]).value, '12');
+    expect(TsValue.fromJsonList([1, 394459.0]).value, '394459');
+    expect(TsValue.fromJsonList([1, 11.858001]).value, '11.858001');
+    expect(TsValue.fromJsonList([1, false]).value, 'false');
+    expect(TsValue.fromJsonList([1, 7]).value, '7');
+    expect(TsValue.fromJson({'ts': 1, 'value': 3.0}).value, '3');
   });
 }
