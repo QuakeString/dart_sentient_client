@@ -138,7 +138,10 @@ class HttpInterceptor extends QueuedInterceptor {
       if (error.requestOptions.path.startsWith('/api/')) {
         _updateLoadingState(config, false);
       }
-      return _handleError(e, error.requestOptions, handler, true);
+      // A background poll that asked for silence stays silent even when the
+      // token refresh behind it fails.
+      return _handleError(
+          e, error.requestOptions, handler, !config.ignoreErrors);
     }
     return _retryRequest(error, handler);
   }

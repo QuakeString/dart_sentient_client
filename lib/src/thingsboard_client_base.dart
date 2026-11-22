@@ -245,6 +245,31 @@ class ThingsboardClient {
     }
   }
 
+  /// True when the request never got an answer from the platform itself:
+  /// no network, a timeout, or a gateway/proxy error (502/503/504).
+  static bool _isConnectionFailure(Object? e) {
+    if (e is DioException) {
+      // The interceptor re-wraps failures as DioException(error: tbError)
+      // without the response; the real answer is inside.
+      if (e.error is ThingsboardError) {
+        return _isConnectionFailure(e.error);
+      }
+      final status = e.response?.statusCode;
+      if (status == null) {
+        return e.type != DioExceptionType.cancel;
+      }
+      return status == 502 || status == 503 || status == 504;
+    }
+    if (e is ThingsboardError) {
+      final status = e.status;
+      if (status != null) {
+        return status == 502 || status == 503 || status == 504;
+      }
+      return e.error is DioException && _isConnectionFailure(e.error);
+    }
+    return false;
+  }
+
   bool _isTokenValid(String? jwtToken) {
     if (jwtToken != null) {
       try {
@@ -308,7 +333,22 @@ class ThingsboardClient {
       var jwtToken = await _storage.getItem('jwt_token');
       var refreshToken = await _storage.getItem('refresh_token');
       if (!_isTokenValid(jwtToken)) {
-        await refreshJwtToken(refreshToken: refreshToken, notify: true);
+        try {
+          await refreshJwtToken(refreshToken: refreshToken, notify: true);
+        } catch (e) {
+          // No network at start (a phone waking from the background, Doze):
+          // the refresh token is still good, so restore the session as it
+          // was. The next request refreshes the access token once the network
+          // is back, and a failure there is a retryable connection error,
+          // not a trip to the login page.
+          if (jwtToken != null &&
+              _isTokenValid(refreshToken) &&
+              _isConnectionFailure(e)) {
+            await _setUserFromJwtToken(jwtToken, refreshToken, true);
+          } else {
+            rethrow;
+          }
+        }
       } else {
         await _setUserFromJwtToken(jwtToken, refreshToken, true);
       }
@@ -515,7 +555,14 @@ class ThingsboardClient {
           await _setUserFromJwtToken(
               loginResponse.token, loginResponse.refreshToken, notify);
         } catch (e) {
-          await _clearJwtToken();
+          // Only a server that REJECTED the refresh token ends the session.
+          // A refresh that never reached it (no network, timeout, proxy or
+          // server down) keeps both tokens, so the next request tries again.
+          // Clearing here signed users out whenever the phone had no network
+          // at the moment the access token was due for renewal.
+          if (!_isConnectionFailure(e)) {
+            await _clearJwtToken();
+          }
           rethrow;
         }
       } else {
