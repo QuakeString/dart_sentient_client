@@ -114,11 +114,11 @@ class DeviceProfileService {
     if (deviceProfileId != null) {
       queryParams['deviceProfileId'] = deviceProfileId;
     }
-    var response = await _tbClient.get<List<String>>(
+    var response = await _tbClient.get<List<dynamic>>(
         '/api/deviceProfile/devices/keys/attributes',
         queryParameters: queryParams,
         options: defaultHttpOptionsFromConfig(requestConfig));
-    return response.data!;
+    return List<String>.from(response.data!);
   }
 
   Future<List<String>> getDeviceProfileDevicesTimeseriesKeys(
@@ -127,10 +127,10 @@ class DeviceProfileService {
     if (deviceProfileId != null) {
       queryParams['deviceProfileId'] = deviceProfileId;
     }
-    var response = await _tbClient.get<List<String>>(
+    var response = await _tbClient.get<List<dynamic>>(
         '/api/deviceProfile/devices/keys/timeseries',
         queryParameters: queryParams,
         options: defaultHttpOptionsFromConfig(requestConfig));
-    return response.data!;
+    return List<String>.from(response.data!);
   }
 }

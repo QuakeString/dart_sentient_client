@@ -15,18 +15,18 @@ class AttributeService {
 
   Future<List<String>> getAttributeKeys(EntityId entityId,
       {RequestConfig? requestConfig}) async {
-    var response = await _tbClient.get<List<String>>(
+    var response = await _tbClient.get<List<dynamic>>(
         '/api/plugins/telemetry/${entityId.entityType.toShortString()}/${entityId.id}/keys/attributes',
         options: defaultHttpOptionsFromConfig(requestConfig));
-    return response.data!;
+    return List<String>.from(response.data!);
   }
 
   Future<List<String>> getAttributeKeysByScope(EntityId entityId, String scope,
       {RequestConfig? requestConfig}) async {
-    var response = await _tbClient.get<List<String>>(
+    var response = await _tbClient.get<List<dynamic>>(
         '/api/plugins/telemetry/${entityId.entityType.toShortString()}/${entityId.id}/keys/attributes/$scope',
         options: defaultHttpOptionsFromConfig(requestConfig));
-    return response.data!;
+    return List<String>.from(response.data!);
   }
 
   Future<List<AttributeKvEntry>> getAttributeKvEntries(
@@ -51,10 +51,10 @@ class AttributeService {
 
   Future<List<String>> getTimeseriesKeys(EntityId entityId,
       {RequestConfig? requestConfig}) async {
-    var response = await _tbClient.get<List<String>>(
+    var response = await _tbClient.get<List<dynamic>>(
         '/api/plugins/telemetry/${entityId.entityType.toShortString()}/${entityId.id}/keys/timeseries',
         options: defaultHttpOptionsFromConfig(requestConfig));
-    return response.data!;
+    return List<String>.from(response.data!);
   }
 
   Future<List<TsKvEntry>> getLatestTimeseries(
