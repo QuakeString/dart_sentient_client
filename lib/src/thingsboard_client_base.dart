@@ -27,7 +27,7 @@ TbCompute syncCompute = <Q, R>(TbComputeCallback<Q, R> callback, Q message) =>
     Future.value(callback(message));
 
 class ThingsboardClient {
-  final String _apiEndpoint;
+  String _apiEndpoint;
   final Dio _dio;
   final TbStorage _storage;
   final UserLoadedCallback? _userLoadedCallback;
@@ -161,6 +161,14 @@ class ThingsboardClient {
   ) : _storage = storage ?? InMemoryStorage();
   Future<void> reInit(String endpoint) async {
     _dio.options.baseUrl = endpoint;
+    // The WebSocket must follow the new server too: the old service would
+    // keep connecting to the previous server with this server's token
+    // ("Token signature is invalid").
+    if (endpoint != _apiEndpoint) {
+      _telemetryWebsocketService?.reset(true);
+      _telemetryWebsocketService = null;
+    }
+    _apiEndpoint = endpoint;
     _dio.interceptors.clear();
 
     if (debugMode) {
@@ -745,6 +753,9 @@ class ThingsboardClient {
     _imageService ??= ImageService(this);
     return _imageService!;
   }
+
+  /// The server this client talks to (changes with [reInit]).
+  String get apiEndpoint => _apiEndpoint;
 
   TelemetryService getTelemetryService() {
     _telemetryWebsocketService ??=
