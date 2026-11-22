@@ -335,6 +335,13 @@ abstract class RestJsonConverter {
   }
 
   static List<TsKvEntry> toTimeseries(Map<String, dynamic>? timeseries) {
+    // SENTIENT servers wrap the key map as {"data": {key: [...]}}; stock
+    // ThingsBoard returns {key: [...]}. A real key named "data" always maps
+    // to a list, so a map under "data" is unambiguously the wrapper.
+    final wrapped = timeseries?['data'];
+    if (timeseries != null && timeseries.length == 1 && wrapped is Map) {
+      timeseries = Map<String, dynamic>.from(wrapped);
+    }
     if (timeseries != null && timeseries.isNotEmpty) {
       var result = <TsKvEntry>[];
       timeseries.forEach((key, value) {
